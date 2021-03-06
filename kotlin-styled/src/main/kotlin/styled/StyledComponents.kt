@@ -1,6 +1,7 @@
 package styled
 
 import kotlinext.js.*
+import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.css.*
 import kotlinx.html.*
@@ -53,7 +54,8 @@ class StyledElementBuilder<P : WithClassName>(
 }
 
 @ReactDsl
-class StyledDOMBuilder<out T : Tag>(factory: (TagConsumer<Unit>) -> T) : RDOMBuilder<T>(factory), StyledBuilder<DOMProps> {
+class StyledDOMBuilder<out T : Tag>(factory: (TagConsumer<Unit>) -> T) : RDOMBuilder<T>(factory),
+    StyledBuilder<DOMProps> {
     override val type: Any = attrs.tagName
     override val css = CSSBuilder()
 
@@ -98,10 +100,12 @@ private fun injectGlobalKeyframeStyle(name: String, style: String) {
     if (style.startsWith("@-webkit-keyframes") || style.startsWith("@keyframes")) {
         injectGlobal(style)
     } else {
-        injectGlobals(arrayOf(
+        injectGlobals(
+            arrayOf(
                 "@-webkit-keyframes $name {$style}",
                 "@keyframes $name {$style}"
-        ))
+            )
+        )
     }
 }
 
@@ -176,13 +180,47 @@ fun injectGlobal(handler: CSSBuilder.() -> Unit) {
     injectGlobal(CSSBuilder().apply { handler() }.toString())
 }
 
+fun generateClassName(): String = "sc-" + List(6) {
+    (('a'..'z') + ('A'..'Z')).random()
+}.joinToString("")
+
+fun getStyledSheetReference(css: String): String {
+    val className = generateClassName()
+    val style = document.createElement("style")
+    style.appendChild(document.createTextNode(".$className {$css}"));
+    val head = document.head ?: document.getElementsByTagName("head")[0]
+    head?.appendChild(style)
+    return className
+}
+
+
+fun customStyled(type: dynamic): FunctionalComponent<StyledProps> {
+    return when(type) {
+        "div" -> styledDiv
+        else -> styledDiv
+    }
+}
+
+val styledDiv = functionalComponent<StyledProps> { props ->
+    val className = useMemo(props.css) { getStyledSheetReference(props.css) }
+
+    div(props.className + " $className") {
+        if (props.children is Array<*>) {
+            childList.addAll(props.children as Array<Any>)
+        } else {
+            childList.add(props.children)
+        }
+    }
+}
+
 object Styled {
     private val cache = mutableMapOf<dynamic, dynamic>()
 
     private fun wrap(type: dynamic) =
         cache.getOrPut(type) {
-            devOverrideUseRef { rawStyled(type)({ it.css }) }
+            customStyled(type)
         }
+
 
     fun createElement(type: Any, css: CSSBuilder, props: WithClassName, children: List<Any>): ReactElement {
         val wrappedType = wrap(type)
