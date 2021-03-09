@@ -110,7 +110,7 @@ private fun injectGlobalKeyframeStyle(name: String, style: String) {
 }
 
 private fun injectGlobals(strings: Array<String>) {
-    val globalStyle = devOverrideUseRef { createGlobalStyle(strings) }
+    val globalStyle = createGlobalStyleComponent(strings)
     Promise.resolve(Unit).then {
         GlobalStyles.add(globalStyle)
     }
@@ -127,30 +127,39 @@ private object GlobalStyles {
         }
     }
 
+    private val styles = mutableListOf<FunctionalComponent<RProps>>()
+
+    fun add(globalStyle: FunctionalComponent<RProps>) {
+        styles.add(globalStyle)
+        val reactElement = createElement<GlobalStylesComponentProps>(component, jsObject {
+            this.globalStyles = styles
+        })
+        render(reactElement, root)
+    }
+
     private val root by kotlin.lazy {
         val element = window.document.body!!.appendChild(window.document.createElement("div")) as Element
         element.setAttribute("id", "sc-global-styles")
         element
     }
-
-    private val styles = mutableListOf<Component<RProps, RState>>()
-
-    fun add(globalStyle: Component<RProps, RState>) {
-        styles.add(globalStyle)
-        val reactElement = createElement<GlobalStylesComponentProps>(GlobalStyles.component, jsObject {
-            this.globalStyles = styles
-        })
-        render(reactElement, root)
-    }
 }
 
 /**
- * @deprecated Use [createGlobalStyle] instead
+ * @deprecated Use [createGlobalStyleComponent] instead
  */
 fun injectGlobal(string: String) {
-    val globalStyle = devOverrideUseRef { createGlobalStyle(string) }
+    val globalStyle = createGlobalStyleComponent(arrayOf(string))
     Promise.resolve(Unit).then {
         GlobalStyles.add(globalStyle)
+    }
+}
+
+var createGlobalStyleComponent = fun(css: Array<String>): FunctionalComponent<RProps> {
+    val cssStr = css.joinToString("\n")
+    return functionalComponent<RProps> { props ->
+        style {
+            +cssStr
+        }
     }
 }
 
@@ -174,28 +183,25 @@ private fun <T> devOverrideUseRef(action: () -> T): T {
 }
 
 /**
- * @deprecated Use [createGlobalStyle] instead
+ * @deprecated Use [createGlobalStyleComponent] instead
  */
 fun injectGlobal(handler: CSSBuilder.() -> Unit) {
     injectGlobal(CSSBuilder().apply { handler() }.toString())
 }
 
-fun generateClassName(): String = "sc-" + List(6) {
+fun generateClassName(prefix: String): String = prefix + List(6) {
     (('a'..'z') + ('A'..'Z')).random()
 }.joinToString("")
 
 fun getStyledSheetReference(css: String): String {
-    val className = generateClassName()
-    val style = document.createElement("style")
-    style.appendChild(document.createTextNode(".$className {$css}"));
-    val head = document.head ?: document.getElementsByTagName("head")[0]
-    head?.appendChild(style)
+    val className = generateClassName("ksc-")
+    GlobalStyles.add(createGlobalStyleComponent(arrayOf(".$className {$css}")))
     return className
 }
 
 
 fun customStyled(type: dynamic): FunctionalComponent<StyledProps> {
-    return when(type) {
+    return when (type) {
         "div" -> styledDiv
         else -> styledDiv
     }
