@@ -1,7 +1,6 @@
 package styled
 
 import kotlinext.js.*
-import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.css.*
 import kotlinx.html.*
@@ -81,11 +80,51 @@ inline fun CustomStyledProps.css(noinline handler: RuleSet) {
 @Suppress("NOTHING_TO_INLINE")
 inline fun <P : CustomStyledProps> RElementBuilder<P>.css(noinline handler: RuleSet) = attrs.css(handler)
 
+fun keyframes(strings: Array<String>): Keyframes {
+    /* Warning if you've used keyframes on React Native */
+    if (
+        js(
+            "process.env.NODE_ENV !== 'production' &&" +
+                    " typeof navigator !== 'undefined' &&" +
+                    " navigator.product === 'ReactNative'"
+        ) as Boolean
+    ) {
+        // eslint-disable-next-line no-console
+        console.warn(
+            "`keyframes` cannot be used on ReactNative, only on the web. To do animation in ReactNative please use Animated."
+        )
+    }
+
+    // TODO get same name for the same rules
+    // var name = generateAlphabeticName(murmurhash(replaceWhitespace(JSON.stringify(rules))));
+    val name = generateClassName("")
+
+    return Keyframes(name, stringifyRules(strings, name, "@keyframes"));
+}
+
+class Keyframes(private val name: String, val rules: Array<String>) {
+    fun getName(): String {
+        return name
+    }
+}
+
+
+fun stringifyRules(rules: Array<String>, selector: String, prefix: String): Array<String> {
+    val commentRegex = Regex("^\\s*//.*$")
+    val flatCSS = rules.joinToString(" ").replace(commentRegex, ""); // replace JS comments
+    val cssStr = "$prefix $selector { $flatCSS }"
+    return arrayOf(cssStr)
+}
+
+fun css(styles: Array<String>): Array<String> {
+    return styles;
+}
+
 /**
  * @deprecated Use [keyframes] and [css] instead
  */
 fun keyframesName(string: String): String {
-    val keyframes = keyframes(string)
+    val keyframes = keyframes(arrayOf(string))
     val keyframesInternal = css(keyframes.rules).asDynamic()
     val name = keyframes.getName()
     when {
@@ -195,15 +234,19 @@ fun generateClassName(prefix: String): String = prefix + List(6) {
 
 fun getStyledSheetReference(css: String): String {
     val className = generateClassName("ksc-")
-    GlobalStyles.add(createGlobalStyleComponent(arrayOf(".$className {$css}")))
+    GlobalStyles.add(createGlobalStyleComponent(arrayOf(".$className {\n$css}")))
     return className
+}
+
+external interface StyledProps : WithClassName {
+    var css: String
 }
 
 fun customStyled(type: String): FunctionalComponent<StyledProps> {
     return functionalComponent("styled${type.capitalize()}") { props ->
         val className = useMemo(props.css) { getStyledSheetReference(props.css) }
         val newProps = clone(props)
-        newProps.className = "${props.className} $className"
+        newProps.className = if (props.className == null) className else "${props.className} $className"
         newProps.css = ""
         child(createElement(type, newProps))
     }
