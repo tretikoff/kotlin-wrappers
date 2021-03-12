@@ -199,23 +199,13 @@ fun getStyledSheetReference(css: String): String {
     return className
 }
 
-
-fun customStyled(type: dynamic): FunctionalComponent<StyledProps> {
-    return when (type) {
-        "div" -> styledDiv
-        else -> styledDiv
-    }
-}
-
-val styledDiv = functionalComponent<StyledProps> { props ->
-    val className = useMemo(props.css) { getStyledSheetReference(props.css) }
-
-    div(props.className + " $className") {
-        if (props.children is Array<*>) {
-            childList.addAll(props.children as Array<Any>)
-        } else {
-            childList.add(props.children)
-        }
+fun customStyled(type: String): FunctionalComponent<StyledProps> {
+    return functionalComponent("styled${type.capitalize()}") { props ->
+        val className = useMemo(props.css) { getStyledSheetReference(props.css) }
+        val newProps = clone(props)
+        newProps.className = "${props.className} $className"
+        newProps.css = ""
+        child(createElement(type, newProps))
     }
 }
 
