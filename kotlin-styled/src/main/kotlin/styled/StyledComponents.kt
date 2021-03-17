@@ -9,6 +9,10 @@ import react.*
 import react.dom.*
 import kotlin.js.*
 
+// TODO test all the corner cases
+// TODO fix js console warning -  Render methods should be a pure function of props and state
+// TODO reuse css styles
+// TODO check the compiler warnings
 typealias AnyTagStyledBuilder = StyledDOMBuilder<CommonAttributeGroupFacade>
 typealias AnyBuilder = AnyTagStyledBuilder.() -> Unit
 
@@ -149,7 +153,7 @@ private fun injectGlobalKeyframeStyle(name: String, style: String) {
 }
 
 private fun injectGlobals(strings: Array<String>) {
-    val globalStyle = createGlobalStyleComponent(strings)
+    val globalStyle = createGlobalStyleComponent(strings.toList())
     Promise.resolve(Unit).then {
         GlobalStyles.add(globalStyle)
     }
@@ -187,13 +191,13 @@ private object GlobalStyles {
  * @deprecated Use [createGlobalStyleComponent] instead
  */
 fun injectGlobal(string: String) {
-    val globalStyle = createGlobalStyleComponent(arrayOf(string))
+    val globalStyle = createGlobalStyleComponent(listOf(string))
     Promise.resolve(Unit).then {
         GlobalStyles.add(globalStyle)
     }
 }
 
-var createGlobalStyleComponent = fun(css: Array<String>): FunctionalComponent<RProps> {
+var createGlobalStyleComponent = fun(css: Collection<String>): FunctionalComponent<RProps> {
     val cssStr = css.joinToString("\n")
     return functionalComponent<RProps> { props ->
         style {
@@ -232,22 +236,28 @@ fun generateClassName(prefix: String): String = prefix + List(6) {
     (('a'..'z') + ('A'..'Z')).random()
 }.joinToString("")
 
-fun getStyledSheetReference(css: String): String {
-    val className = generateClassName("ksc-")
-    GlobalStyles.add(createGlobalStyleComponent(arrayOf(".$className {\n$css}")))
-    return className
+fun createStyleSheet(cssAmp: CssRules, generatedClassName: String) {
+    val rules =
+        cssAmp.filter { it.contains("&") }.map { it.replace("&", ".$generatedClassName") }.toMutableList()
+    rules.addAll(cssAmp.filter { !it.contains("&") }.map { ".$generatedClassName {\n$it}" }.toMutableList())
+    GlobalStyles.add(createGlobalStyleComponent(rules))
 }
 
 external interface StyledProps : WithClassName {
-    var css: String
+    var css_rules: CssRules?
+    var generated_class_name: String?
 }
 
 fun customStyled(type: String): FunctionalComponent<StyledProps> {
     return functionalComponent("styled${type.capitalize()}") { props ->
-        val className = useMemo(props.css) { getStyledSheetReference(props.css) }
+        val ampersandCss = props.css_rules
+        val generatedClassName = props.generated_class_name
+        if (generatedClassName != null && ampersandCss != null) {
+            useMemo(ampersandCss) { createStyleSheet(ampersandCss, generatedClassName) }
+        }
         val newProps = clone(props)
-        newProps.className = if (props.className == null) className else "${props.className} $className"
-        newProps.css = ""
+        newProps.generated_class_name = null
+        newProps.css_rules = null
         child(createElement(type, newProps))
     }
 }
@@ -263,13 +273,15 @@ object Styled {
 
     fun createElement(type: Any, css: CSSBuilder, props: WithClassName, children: List<Any>): ReactElement {
         val wrappedType = wrap(type)
+        val className = generateClassName("ksc-")
         val styledProps = props.unsafeCast<StyledProps>()
         if (css.rules.isNotEmpty() || css.multiRules.isNotEmpty() || css.declarations.isNotEmpty()) {
-            styledProps.css = css.toString()
+            css.classes.add(className)
+            val cssRules = css.buildCssRules()
+            styledProps.css_rules = cssRules
         }
-        if (css.classes.isNotEmpty()) {
-            styledProps.className = css.classes.joinToString(separator = " ")
-        }
+        styledProps.generated_class_name = className
+        styledProps.className = css.classes.joinToString(separator = " ")
         if (css.styleName.isNotEmpty()) {
             styledProps.asDynamic()["data-style"] = css.styleName.joinToString(separator = " ")
         }

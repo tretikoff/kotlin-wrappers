@@ -5,11 +5,12 @@ typealias RuleSet = CSSBuilder.() -> Unit
 fun ruleSet(set: RuleSet) = set
 
 data class Rule(val selector: String, val passStaticClassesToParent: Boolean = false, val block: RuleSet)
+typealias CssRules = ArrayList<String>
 
 interface RuleContainer {
     fun StringBuilder.buildRules(indent: String) {
         val resolvedRules = LinkedHashMap<String, CSSBuilder>()
-        rules.forEach { (selector, passStaticClassesToParent, block) ->
+        rules.filter { !it.selector.contains('&') }.forEach { (selector, passStaticClassesToParent, block) ->
             if (!resolvedRules.containsKey(selector)) {
                 resolvedRules[selector] = CSSBuilder(
                     "$indent  ",
@@ -29,15 +30,30 @@ interface RuleContainer {
 
         multiRules.forEach { (selector, passStaticClassesToParent, block) ->
             val blockBuilder = CSSBuilder(
-                    "$indent  ",
-                    allowClasses = false,
-                    parent = if (passStaticClassesToParent) this@RuleContainer else null
+                "$indent  ",
+                allowClasses = false,
+                parent = if (passStaticClassesToParent) this@RuleContainer else null
             ).apply(block)
 
             append("$selector {\n")
             append(blockBuilder)
             append("}\n")
         }
+    }
+
+    //TODO maybe move inside buildRules
+    fun buildAmpersandRules(ident: String): CssRules {
+        val resolvedRules = ArrayList<String>()
+
+        rules.filter { it.selector.contains('&') }.forEach { (selector, passStaticClassesToParent, block) ->
+            resolvedRules.add(
+                "$selector { \n" + CSSBuilder(
+                    "$ident  ",
+                    allowClasses = false,
+                    parent = if (passStaticClassesToParent) this@RuleContainer else null
+                ).apply(block) + "}\n")
+        }
+        return resolvedRules
     }
 
     val rules: MutableList<Rule>
@@ -66,6 +82,12 @@ class CSSBuilder(
         }
 
         buildRules(indent)
+    }
+
+    fun buildCssRules(): CssRules {
+        val rules = buildAmpersandRules(indent)
+        rules.add(toString())
+        return rules
     }
 
     override val rules = mutableListOf<Rule>()
