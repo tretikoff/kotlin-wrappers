@@ -12,7 +12,6 @@ import kotlin.js.*
 // TODO test all the corner cases
 // TODO fix js console warning -  Render methods should be a pure function of props and state
 // TODO reuse css styles
-// TODO check the compiler warnings
 typealias AnyTagStyledBuilder = StyledDOMBuilder<CommonAttributeGroupFacade>
 typealias AnyBuilder = AnyTagStyledBuilder.() -> Unit
 
@@ -112,7 +111,6 @@ class Keyframes(private val name: String, val rules: Array<String>) {
     }
 }
 
-
 fun stringifyRules(rules: Array<String>, selector: String, prefix: String): Array<String> {
     val commentRegex = Regex("^\\s*//.*$")
     val flatCSS = rules.joinToString(" ").replace(commentRegex, ""); // replace JS comments
@@ -152,7 +150,7 @@ private fun injectGlobalKeyframeStyle(name: String, style: String) {
     }
 }
 
-private fun injectGlobals(strings: Array<String>) {
+fun injectGlobals(strings: Array<String>) {
     val globalStyle = createGlobalStyleComponent(strings.toList())
     Promise.resolve(Unit).then {
         GlobalStyles.add(globalStyle)
@@ -182,7 +180,7 @@ private object GlobalStyles {
 
     private val root by kotlin.lazy {
         val element = window.document.body!!.appendChild(window.document.createElement("div")) as Element
-        element.setAttribute("id", "sc-global-styles")
+        element.setAttribute("id", "ksc-global-styles")
         element
     }
 }
@@ -236,11 +234,15 @@ fun generateClassName(prefix: String): String = prefix + List(6) {
     (('a'..'z') + ('A'..'Z')).random()
 }.joinToString("")
 
-fun createStyleSheet(cssAmp: CssRules, generatedClassName: String) {
-    val rules =
-        cssAmp.filter { it.contains("&") }.map { it.replace("&", ".$generatedClassName") }.toMutableList()
-    rules.addAll(cssAmp.filter { !it.contains("&") }.map { ".$generatedClassName {\n$it}" }.toMutableList())
-    GlobalStyles.add(createGlobalStyleComponent(rules))
+fun createStyleSheet(cssAmp: CssRules?, generatedClassName: String?) {
+    if (cssAmp == null || generatedClassName == null) return
+    val rules = cssAmp.filter { it.contains("&") }
+        .map { it.replace("&", ".$generatedClassName") }
+        .toMutableList()
+    rules.addAll(cssAmp.filter { !it.contains("&") }
+        .map { ".$generatedClassName {\n$it}" }
+        .toMutableList())
+    injectGlobals(rules.toTypedArray())
 }
 
 external interface StyledProps : WithClassName {
@@ -250,11 +252,9 @@ external interface StyledProps : WithClassName {
 
 fun customStyled(type: String): FunctionalComponent<StyledProps> {
     return functionalComponent("styled${type.capitalize()}") { props ->
-        val ampersandCss = props.css_rules
+        val rules = props.css_rules
         val generatedClassName = props.generated_class_name
-        if (generatedClassName != null && ampersandCss != null) {
-            useMemo(ampersandCss) { createStyleSheet(ampersandCss, generatedClassName) }
-        }
+        useEffect (listOf(rules, generatedClassName)) { createStyleSheet(rules, generatedClassName) }
         val newProps = clone(props)
         newProps.generated_class_name = null
         newProps.css_rules = null
@@ -276,6 +276,7 @@ object Styled {
         val className = generateClassName("ksc-")
         val styledProps = props.unsafeCast<StyledProps>()
         if (css.rules.isNotEmpty() || css.multiRules.isNotEmpty() || css.declarations.isNotEmpty()) {
+            css.cssClasses.forEach { it.inject() }
             css.classes.add(className)
             val cssRules = css.buildCssRules()
             styledProps.css_rules = cssRules

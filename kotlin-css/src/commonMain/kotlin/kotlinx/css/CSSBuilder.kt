@@ -41,7 +41,6 @@ interface RuleContainer {
         }
     }
 
-    //TODO maybe move inside buildRules
     fun buildAmpersandRules(ident: String): CssRules {
         val resolvedRules = ArrayList<String>()
 
@@ -51,7 +50,8 @@ interface RuleContainer {
                     "$ident  ",
                     allowClasses = false,
                     parent = if (passStaticClassesToParent) this@RuleContainer else null
-                ).apply(block) + "}\n")
+                ).apply(block) + "}\n"
+            )
         }
         return resolvedRules
     }
@@ -73,6 +73,7 @@ class CSSBuilder(
     val parent: RuleContainer? = null
 ) : StyledElement(), RuleContainer {
     var classes = mutableListOf<String>()
+    var cssClasses = mutableListOf<CssClass>()
 
     var styleName = mutableListOf<String>()
 
@@ -121,8 +122,12 @@ class CSSBuilder(
     fun link(block: RuleSet) = "&:link"(block)
     fun not(@Suppress("UNUSED_PARAMETER") selector: String, block: RuleSet) = "&:not($selector)"(block)
     fun nthChild(@Suppress("UNUSED_PARAMETER") selector: String, block: RuleSet) = "&:nth-child($selector)"(block)
-    fun nthLastChild(@Suppress("UNUSED_PARAMETER") selector: String, block: RuleSet) = "&:nth-last-child($selector)"(block)
-    fun nthLastOfType(@Suppress("UNUSED_PARAMETER") selector: String, block: RuleSet) = "&:nth-last-of-type($selector)"(block)
+    fun nthLastChild(@Suppress("UNUSED_PARAMETER") selector: String, block: RuleSet) =
+        "&:nth-last-child($selector)"(block)
+
+    fun nthLastOfType(@Suppress("UNUSED_PARAMETER") selector: String, block: RuleSet) =
+        "&:nth-last-of-type($selector)"(block)
+
     fun nthOfType(@Suppress("UNUSED_PARAMETER") selector: String, block: RuleSet) = "&:nth-of-type($selector)"(block)
     fun onlyChild(block: RuleSet) = "&:only-child"(block)
     fun onlyOfType(block: RuleSet) = "&:only-of-type"(block)
@@ -135,9 +140,11 @@ class CSSBuilder(
     fun visited(block: RuleSet) = "&:visited"(block)
 
     // Children & descendants
-    fun children(@Suppress("UNUSED_PARAMETER") selector: String? = null, block: RuleSet) = "& > ${selector ?: "*"}"(block)
+    fun children(@Suppress("UNUSED_PARAMETER") selector: String? = null, block: RuleSet) =
+        "& > ${selector ?: "*"}"(block)
 
-    fun descendants(@Suppress("UNUSED_PARAMETER") selector: String? = null, block: RuleSet) = "& ${selector ?: "*"}"(block)
+    fun descendants(@Suppress("UNUSED_PARAMETER") selector: String? = null, block: RuleSet) =
+        "& ${selector ?: "*"}"(block)
 
     // Temporarily using && here because of a bug introduced in version 5.2: https://github.com/styled-components/styled-components/issues/3244#issuecomment-687676703
     fun ancestorHover(@Suppress("UNUSED_PARAMETER") selector: String, block: RuleSet) = "$selector:hover &&"(block)
@@ -202,7 +209,8 @@ class CSSBuilder(
 
     fun supports(@Suppress("UNUSED_PARAMETER") query: String, block: RuleSet) = "@supports $query"(block)
 
-    fun fontFace(block: RuleSet) = rule("@font-face", passStaticClassesToParent = false, repeatable = true, block = block)
+    fun fontFace(block: RuleSet) =
+        rule("@font-face", passStaticClassesToParent = false, repeatable = true, block = block)
 
     fun retina(block: RuleSet) {
         media("(-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi)") {
@@ -234,23 +242,32 @@ class CSSBuilder(
     // Operator overrides
     operator fun RuleSet.unaryPlus() = this()
 
-    operator fun String.unaryPlus() = addClass(this)
+    operator fun String.unaryPlus() = addClassname(this)
+    operator fun CssClass.unaryPlus() = addCssClass(this)
 
-    operator fun Array<String>.unaryPlus() = this.forEach { addClass(it) }
+    operator fun Array<String>.unaryPlus() = this.forEach { addClassname(it) }
 
-    operator fun Iterable<String>.unaryPlus() = this.forEach { addClass(it) }
+    operator fun Iterable<String>.unaryPlus() = this.forEach { addClassname(it) }
 
-    private fun addClass(className: String) {
+    private fun addClassname(className: String) {
         if (allowClasses) {
             classes.add(className)
         } else {
-            (parent as? CSSBuilder)?.addClass(className)
+            (parent as? CSSBuilder)?.addClassname(className)
         }
+    }
+
+    private fun addCssClass(cls: CssClass) {
+        cssClasses.add(cls)
     }
 
     companion object {
         private val NOT_REGEX by lazy { Regex("^(&?)(.*)$") }
     }
+}
+
+abstract class CssClass {
+    abstract fun inject()
 }
 
 fun String.toCustomProperty(): String {
