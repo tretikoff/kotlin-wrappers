@@ -10,7 +10,6 @@ import react.dom.*
 import kotlin.js.*
 
 // TODO test all the corner cases
-// TODO fix js console warning -  Render methods should be a pure function of props and state
 // TODO reuse css styles
 typealias AnyTagStyledBuilder = StyledDOMBuilder<CommonAttributeGroupFacade>
 typealias AnyBuilder = AnyTagStyledBuilder.() -> Unit
@@ -250,16 +249,19 @@ external interface StyledProps : WithClassName {
     var generated_class_name: String?
 }
 
-fun customStyled(type: String): FunctionalComponent<StyledProps> {
-    return functionalComponent("styled${type.capitalize()}") { props ->
+fun customStyled(type: String): RClass<StyledProps> {
+    val fc = forwardRef<StyledProps>{props, rRef ->
         val rules = props.css_rules
         val generatedClassName = props.generated_class_name
         useEffect (listOf(rules, generatedClassName)) { createStyleSheet(rules, generatedClassName) }
         val newProps = clone(props)
         newProps.generated_class_name = null
         newProps.css_rules = null
+        newProps.ref = rRef
         child(createElement(type, newProps))
     }
+    fc.asDynamic().displayName = "styled${type.capitalize()}"
+    return fc
 }
 
 object Styled {
