@@ -34,17 +34,14 @@ open class StyleSheet(var name: String, val isStatic: Boolean = false) {
                     cssHolder.properties.map { it to cssHolder }
                 }
 
-            val builder = CSSBuilder(allowClasses = false).apply {
-                keys.forEach {
-                    ".${getClassName(it.first)}" {
-                        for (r in it.second.ruleSets) {
-                            r()
-                        }
+            keys.forEach {
+                val builder = CSSBuilder(allowClasses = false).apply {
+                    for (r in it.second.ruleSets) {
+                        r()
                     }
                 }
+                createStyleSheet(builder.buildCssRules(), getClassName(it.first));
             }
-
-            injectGlobal(builder.toString())
         }
     }
 }
