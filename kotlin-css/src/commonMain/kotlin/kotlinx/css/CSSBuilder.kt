@@ -259,6 +259,7 @@ class CSSBuilder(
 
     private fun addCssClass(cls: CssClass) {
         cssClasses.add(cls)
+        addClassname(cls.className)
     }
 
     companion object {
@@ -267,6 +268,7 @@ class CSSBuilder(
 }
 
 abstract class CssClass {
+    abstract val className: String
     abstract fun inject()
 }
 

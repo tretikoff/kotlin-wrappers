@@ -58,8 +58,7 @@ class CssHolder(private val sheet: StyleSheet, internal vararg val ruleSets: Rul
         return ReadOnlyProperty { _, property ->
             {
                 if (sheet.isStatic) {
-                    +(sheet.getClassName(property))
-                    +CssClassImpl(sheet)
+                    +CssClassImpl(sheet, property)
                 }
 
                 if (!sheet.isStatic || !allowClasses) {
@@ -71,7 +70,9 @@ class CssHolder(private val sheet: StyleSheet, internal vararg val ruleSets: Rul
     }
 }
 
-data class CssClassImpl(val sheet: StyleSheet) : CssClass() {
+data class CssClassImpl(val sheet: StyleSheet, val property: KProperty<*>) : CssClass() {
+    override val className: String
+        get() = sheet.getClassName(property)
     override fun inject() {
         sheet.inject()
     }

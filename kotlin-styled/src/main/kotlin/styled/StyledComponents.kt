@@ -196,7 +196,7 @@ fun injectGlobal(string: String) {
 
 var createGlobalStyleComponent = fun(css: Collection<String>): FunctionalComponent<RProps> {
     val cssStr = css.joinToString("\n")
-    return functionalComponent<RProps> { props ->
+    return functionalComponent<RProps> { _ ->
         style {
             +cssStr
         }
@@ -246,15 +246,19 @@ fun createStyleSheet(cssAmp: CssRules?, generatedClassName: String?) {
 
 external interface StyledProps : WithClassName {
     var css_rules: CssRules?
+    var css_classes: List<CssClass>?
     var generated_class_name: String?
 }
 
 fun customStyled(type: String): RClass<StyledProps> {
-    val fc = forwardRef<StyledProps>{props, rRef ->
+    val fc = forwardRef<StyledProps> { props, rRef ->
         val rules = props.css_rules
         val generatedClassName = props.generated_class_name
-        useEffect (listOf(rules, generatedClassName)) { createStyleSheet(rules, generatedClassName) }
+        val classes = props.css_classes
+        useEffect(listOf(rules, generatedClassName)) { createStyleSheet(rules, generatedClassName) }
+        useEffect(classes) { classes?.forEach { it.inject() } }
         val newProps = clone(props)
+        newProps.css_classes = null
         newProps.generated_class_name = null
         newProps.css_rules = null
         newProps.ref = rRef
@@ -278,11 +282,11 @@ object Styled {
         val className = generateClassName("ksc-")
         val styledProps = props.unsafeCast<StyledProps>()
         if (css.rules.isNotEmpty() || css.multiRules.isNotEmpty() || css.declarations.isNotEmpty()) {
-            css.cssClasses.forEach { it.inject() }
             css.classes.add(className)
             val cssRules = css.buildCssRules()
             styledProps.css_rules = cssRules
         }
+        styledProps.css_classes = css.cssClasses
         styledProps.generated_class_name = className
         styledProps.className = css.classes.joinToString(separator = " ")
         if (css.styleName.isNotEmpty()) {
