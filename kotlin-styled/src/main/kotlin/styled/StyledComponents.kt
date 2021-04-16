@@ -155,9 +155,8 @@ private fun injectGlobalKeyframeStyle(name: String, style: String) {
 
 fun injectGlobals(strings: Array<String>) {
     if (strings.isEmpty()) return
-    val globalStyle = createGlobalStyleComponent(strings.toList())
     Promise.resolve(Unit).then {
-        GlobalStyles.add(globalStyle)
+        GlobalStyles.add(strings.toList())
     }
 }
 
@@ -167,15 +166,13 @@ private external interface GlobalStylesComponentProps : RProps {
 
 private object GlobalStyles {
     private val component = functionalComponent<GlobalStylesComponentProps> { props ->
-        props.globalStyles.forEach {
-            child(it, jsObject {}, emptyList())
-        }
+        child("style", jsObject {}, props.globalStyles)
     }
 
-    private val styles = mutableListOf<FunctionalComponent<RProps>>()
+    private val styles = mutableListOf<String>()
 
-    fun add(globalStyle: FunctionalComponent<RProps>) {
-        styles.add(globalStyle)
+    fun add(globalStyle: List<String>) {
+        styles.addAll(globalStyle)
         val reactElement = createElement<GlobalStylesComponentProps>(component, jsObject {
             this.globalStyles = styles
         })
@@ -193,18 +190,8 @@ private object GlobalStyles {
  * @deprecated Use [createGlobalStyleComponent] instead
  */
 fun injectGlobal(string: String) {
-    val globalStyle = createGlobalStyleComponent(listOf(string))
     Promise.resolve(Unit).then {
-        GlobalStyles.add(globalStyle)
-    }
-}
-
-var createGlobalStyleComponent = fun(css: Collection<String>): FunctionalComponent<RProps> {
-    val cssStr = css.joinToString("\n")
-    return functionalComponent {
-        style {
-            +cssStr
-        }
+        GlobalStyles.add(listOf(string))
     }
 }
 
@@ -228,9 +215,9 @@ fun createStyleSheet(cssClasses: CssToClassMap) {
         val css = it.key
         val className = it.value
         if (css.contains("&")) {
-            return@map css.replace("&", ".${className}")
+            css.replace("&", ".${className}")
         } else {
-            return@map ".$className {\n$css}"
+            ".$className {\n$css}"
         }
     }
     injectGlobals(rules.toTypedArray())
@@ -278,7 +265,7 @@ object Styled {
     private val cache = mutableMapOf<dynamic, dynamic>()
 
     private fun wrap(type: dynamic) =
-        cache.getOrPut(type) {
+        cache.getOrPut<dynamic, RClass<StyledProps>>(type) {
             customStyled(type)
         }
 
