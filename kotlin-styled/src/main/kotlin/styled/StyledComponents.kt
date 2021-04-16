@@ -1,16 +1,18 @@
 package styled
 
-import kotlinext.js.*
+import kotlinext.js.clone
+import kotlinext.js.jsObject
 import kotlinx.browser.window
-import kotlinx.css.*
+import kotlinx.css.CSSBuilder
+import kotlinx.css.CssClass
+import kotlinx.css.CssRules
+import kotlinx.css.RuleSet
 import kotlinx.html.*
-import org.w3c.dom.*
+import org.w3c.dom.Element
 import react.*
 import react.dom.*
-import kotlin.js.*
+import kotlin.js.Promise
 
-// TODO test all the corner cases
-// TODO reuse css styles
 typealias AnyTagStyledBuilder = StyledDOMBuilder<CommonAttributeGroupFacade>
 typealias AnyBuilder = AnyTagStyledBuilder.() -> Unit
 
@@ -20,6 +22,9 @@ typealias ABuilder = StyledDOMBuilder<A>.() -> Unit
 typealias DIVBuilder = StyledDOMBuilder<DIV>.() -> Unit
 typealias SPANBuilder = StyledDOMBuilder<SPAN>.() -> Unit
 typealias INPUTBuilder = StyledDOMBuilder<INPUT>.() -> Unit
+typealias CssToClassMap = HashMap<String, String>
+
+private val styledClasses = CssToClassMap()
 
 external interface CustomStyledProps : RProps {
     var css: ArrayList<RuleSet>?
@@ -42,6 +47,7 @@ interface StyledBuilder<P : WithClassName> {
     val css: CSSBuilder
     val type: Any
 }
+
 
 inline fun StyledBuilder<*>.css(handler: RuleSet) = css.handler()
 
@@ -97,11 +103,9 @@ fun keyframes(strings: Array<String>): Keyframes {
         )
     }
 
-    // TODO get same name for the same rules
-    // var name = generateAlphabeticName(murmurhash(replaceWhitespace(JSON.stringify(rules))));
     val name = generateClassName("")
 
-    return Keyframes(name, stringifyRules(strings, name, "@keyframes"));
+    return Keyframes(name, stringifyRules(strings, name, "@keyframes"))
 }
 
 class Keyframes(private val name: String, val rules: Array<String>) {
@@ -112,13 +116,13 @@ class Keyframes(private val name: String, val rules: Array<String>) {
 
 fun stringifyRules(rules: Array<String>, selector: String, prefix: String): Array<String> {
     val commentRegex = Regex("^\\s*//.*$")
-    val flatCSS = rules.joinToString(" ").replace(commentRegex, ""); // replace JS comments
+    val flatCSS = rules.joinToString(" ").replace(commentRegex, "") // replace JS comments
     val cssStr = "$prefix $selector { $flatCSS }"
     return arrayOf(cssStr)
 }
 
 fun css(styles: Array<String>): Array<String> {
-    return styles;
+    return styles
 }
 
 /**
@@ -128,9 +132,9 @@ fun keyframesName(string: String): String {
     val keyframes = keyframes(arrayOf(string))
     val keyframesInternal = css(keyframes.rules).asDynamic()
     val name = keyframes.getName()
-    when {
-        keyframesInternal is String -> injectGlobalKeyframeStyle(name, keyframesInternal)
-        keyframesInternal is Array<String> -> injectGlobalKeyframeStyle(name, keyframesInternal[0])
+    when (keyframesInternal) {
+        is String -> injectGlobalKeyframeStyle(name, keyframesInternal)
+        is Array<String> -> injectGlobalKeyframeStyle(name, keyframesInternal[0])
         else -> injectGlobals(keyframesInternal)
     }
     return keyframes.getName()
@@ -150,6 +154,7 @@ private fun injectGlobalKeyframeStyle(name: String, style: String) {
 }
 
 fun injectGlobals(strings: Array<String>) {
+    if (strings.isEmpty()) return
     val globalStyle = createGlobalStyleComponent(strings.toList())
     Promise.resolve(Unit).then {
         GlobalStyles.add(globalStyle)
@@ -196,7 +201,7 @@ fun injectGlobal(string: String) {
 
 var createGlobalStyleComponent = fun(css: Collection<String>): FunctionalComponent<RProps> {
     val cssStr = css.joinToString("\n")
-    return functionalComponent<RProps> { _ ->
+    return functionalComponent {
         style {
             +cssStr
         }
@@ -206,21 +211,6 @@ var createGlobalStyleComponent = fun(css: Collection<String>): FunctionalCompone
 @JsModule("react")
 @JsNonModule
 external object ReactModule
-
-private fun <T> devOverrideUseRef(action: () -> T): T {
-    return if (js("process.env.NODE_ENV !== 'production'")) {
-        // (Very) dirty hack: styled-components calls useRef() in development mode to check if a component
-        // has been created dynamically. We can't allow this call to happen because it breaks rendering, so
-        // we temporarily redefine useRef.
-        val useRef = ReactModule.asDynamic().useRef
-        ReactModule.asDynamic().useRef = {
-            throw Error("invalid hook call")
-        }
-        val result = action()
-        ReactModule.asDynamic().useRef = useRef
-        result
-    } else action()
-}
 
 /**
  * @deprecated Use [createGlobalStyleComponent] instead
@@ -233,33 +223,49 @@ fun generateClassName(prefix: String): String = prefix + List(6) {
     (('a'..'z') + ('A'..'Z')).random()
 }.joinToString("")
 
-fun createStyleSheet(cssAmp: CssRules?, generatedClassName: String?) {
-    if (cssAmp == null || generatedClassName == null) return
-    val rules = cssAmp.filter { it.contains("&") }
-        .map { it.replace("&", ".$generatedClassName") }
-        .toMutableList()
-    rules.addAll(cssAmp.filter { !it.contains("&") }
-        .map { ".$generatedClassName {\n$it}" }
-        .toMutableList())
+fun createStyleSheet(cssClasses: CssToClassMap) {
+    val rules = cssClasses.map {
+        val css = it.key
+        val className = it.value
+        if (css.contains("&")) {
+            return@map css.replace("&", ".${className}")
+        } else {
+            return@map ".$className {\n$css}"
+        }
+    }
     injectGlobals(rules.toTypedArray())
 }
 
 external interface StyledProps : WithClassName {
     var css_rules: CssRules?
     var css_classes: List<CssClass>?
-    var generated_class_name: String?
 }
 
 fun customStyled(type: String): RClass<StyledProps> {
     val fc = forwardRef<StyledProps> { props, rRef ->
         val rules = props.css_rules
-        val generatedClassName = props.generated_class_name
-        val classes = props.css_classes
-        useEffect(listOf(rules, generatedClassName)) { createStyleSheet(rules, generatedClassName) }
-        useEffect(classes) { classes?.forEach { it.inject() } }
         val newProps = clone(props)
+        val cssClasses = CssToClassMap()
+        if (rules != null) {
+            val it = rules.iterator()
+            while (it.hasNext()) {
+                val cssKey = it.next()
+                var className = styledClasses[cssKey]
+                if (className == null) {
+                    className = generateClassName("ksc-")
+                    cssClasses[cssKey] = className
+                    styledClasses[cssKey] = className
+                } else {
+                    it.remove()
+                }
+                newProps.className += " $className"
+            }
+        }
+
+        useEffect(listOf(cssClasses)) { createStyleSheet(cssClasses) }
+        val classes = props.css_classes
+        useEffect(classes) { classes?.forEach { it.inject() } }
         newProps.css_classes = null
-        newProps.generated_class_name = null
         newProps.css_rules = null
         newProps.ref = rRef
         child(createElement(type, newProps))
@@ -276,18 +282,14 @@ object Styled {
             customStyled(type)
         }
 
-
     fun createElement(type: Any, css: CSSBuilder, props: WithClassName, children: List<Any>): ReactElement {
         val wrappedType = wrap(type)
-        val className = generateClassName("ksc-")
         val styledProps = props.unsafeCast<StyledProps>()
         if (css.rules.isNotEmpty() || css.multiRules.isNotEmpty() || css.declarations.isNotEmpty()) {
-            css.classes.add(className)
             val cssRules = css.buildCssRules()
             styledProps.css_rules = cssRules
         }
         styledProps.css_classes = css.cssClasses
-        styledProps.generated_class_name = className
         styledProps.className = css.classes.joinToString(separator = " ")
         if (css.styleName.isNotEmpty()) {
             styledProps.asDynamic()["data-style"] = css.styleName.joinToString(separator = " ")

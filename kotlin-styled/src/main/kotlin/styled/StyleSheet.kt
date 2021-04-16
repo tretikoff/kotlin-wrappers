@@ -41,7 +41,12 @@ open class StyleSheet(var name: String, val isStatic: Boolean = false) {
                         r()
                     }
                 }
-                createStyleSheet(builder.buildCssRules(), getClassName(it.first));
+                val map = CssToClassMap()
+                val className = getClassName(it.first)
+                for (rule in builder.buildCssRules()) {
+                    map[rule] = className
+                }
+                createStyleSheet(map)
             }
         }
     }
