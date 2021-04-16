@@ -103,9 +103,15 @@ fun keyframes(strings: Array<String>): Keyframes {
         )
     }
 
-    val name = generateClassName("")
+    val css = strings.joinToString(" ")
+    var className = styledClasses[css]
+    if (className == null) {
+        className = generateClassName("ksc-keyframe-")
+        injectGlobalKeyframeStyle(className, strings[0])
+        styledClasses[css] = className
+    }
 
-    return Keyframes(name, stringifyRules(strings, name, "@keyframes"))
+    return Keyframes(className, stringifyRules(strings, className, "@keyframes"))
 }
 
 class Keyframes(private val name: String, val rules: Array<String>) {
@@ -130,13 +136,6 @@ fun css(styles: Array<String>): Array<String> {
  */
 fun keyframesName(string: String): String {
     val keyframes = keyframes(arrayOf(string))
-    val keyframesInternal = css(keyframes.rules).asDynamic()
-    val name = keyframes.getName()
-    when (keyframesInternal) {
-        is String -> injectGlobalKeyframeStyle(name, keyframesInternal)
-        is Array<String> -> injectGlobalKeyframeStyle(name, keyframesInternal[0])
-        else -> injectGlobals(keyframesInternal)
-    }
     return keyframes.getName()
 }
 
