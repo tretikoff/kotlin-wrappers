@@ -248,9 +248,9 @@ fun customStyled(type: String): RClass<StyledProps> {
             }
         }
 
-        useEffect(listOf(cssClasses)) { createStyleSheet(cssClasses) }
+        useStructEffect(listOf(cssClasses)) { createStyleSheet(cssClasses) }
         val classes = props.css_classes
-        useEffect(classes) { classes?.forEach { it.inject() } }
+        useStructEffect(listOf(classes)) { classes?.forEach { it.inject() } }
         newProps.css_classes = null
         newProps.css_rules = null
         newProps.ref = rRef
