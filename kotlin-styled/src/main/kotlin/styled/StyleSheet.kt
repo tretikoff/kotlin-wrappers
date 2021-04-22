@@ -76,10 +76,22 @@ class CssHolder(private val sheet: StyleSheet, internal vararg val ruleSets: Rul
 }
 
 data class CssClassImpl(val sheet: StyleSheet, val property: KProperty<*>) : CssClass() {
+    override fun equals(other: Any?): Boolean {
+        if (other is CssClassImpl) {
+            return other.className == className
+        }
+        return false
+    }
     override val className: String
         get() = sheet.getClassName(property)
     override fun inject() {
         sheet.inject()
+    }
+
+    override fun hashCode(): Int {
+        var result = sheet.hashCode()
+        result = 31 * result + property.hashCode()
+        return result
     }
 }
 

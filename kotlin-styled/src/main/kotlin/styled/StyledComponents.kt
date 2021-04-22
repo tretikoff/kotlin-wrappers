@@ -1,6 +1,8 @@
 package styled
 
+import kotlinext.js.asJsObject
 import kotlinext.js.clone
+import kotlinext.js.getOwnPropertyNames
 import kotlinext.js.jsObject
 import kotlinx.browser.window
 import kotlinx.css.CSSBuilder
@@ -24,6 +26,7 @@ typealias SPANBuilder = StyledDOMBuilder<SPAN>.() -> Unit
 typealias INPUTBuilder = StyledDOMBuilder<INPUT>.() -> Unit
 typealias CssToClassMap = HashMap<String, String>
 
+// TODO somehow remove classes which are no longer used
 private val styledClasses = CssToClassMap()
 
 external interface CustomStyledProps : RProps {
@@ -224,37 +227,54 @@ fun createStyleSheet(cssClasses: CssToClassMap) {
 
 external interface StyledProps : WithClassName {
     var css_rules: CssRules?
-    var css_classes: List<CssClass>?
+    var css_classes: ArrayList<CssClass>?
 }
 
-fun customStyled(type: String): RClass<StyledProps> {
-    val fc = forwardRef<StyledProps> { props, rRef ->
+fun customStyled(type: String): FunctionalComponent<StyledProps> {
+    var fc = forwardRef<StyledProps> { props, rRef ->
         val rules = props.css_rules
         val newProps = clone(props)
         val cssClasses = CssToClassMap()
-        if (rules != null) {
-            val it = rules.iterator()
-            while (it.hasNext()) {
-                val cssKey = it.next()
-                var className = styledClasses[cssKey]
-                if (className == null) {
-                    className = generateClassName("ksc-")
-                    cssClasses[cssKey] = className
-                    styledClasses[cssKey] = className
-                } else {
-                    it.remove()
+        useStructMemo(arrayOf(rules)) {
+            if (rules != null) {
+                val it = rules.iterator()
+                while (it.hasNext()) {
+                    val cssKey = it.next()
+                    var className = styledClasses[cssKey]
+                    if (className == null) {
+                        className = generateClassName("ksc-")
+                        cssClasses[cssKey] = className
+                        styledClasses[cssKey] = className
+                    } else {
+                        it.remove()
+                    }
+                    newProps.className += " $className"
                 }
-                newProps.className += " $className"
             }
         }
 
-        useStructEffect(listOf(cssClasses)) { createStyleSheet(cssClasses) }
         val classes = props.css_classes
+        useStructEffect(listOf(cssClasses)) { createStyleSheet(cssClasses) }
         useStructEffect(listOf(classes)) { classes?.forEach { it.inject() } }
         newProps.css_classes = null
         newProps.css_rules = null
         newProps.ref = rRef
         child(createElement(type, newProps))
+    }.unsafeCast<FunctionalComponent<StyledProps>>()
+    fc = memo(fc)
+    { oldProps: StyledProps, newProps: StyledProps ->
+        if (Children.toArray(oldProps.children).isNotEmpty() || Children.toArray(newProps.children).isNotEmpty()) {
+            false
+        } else {
+            for (key in oldProps.getOwnPropertyNames()) {
+                if (!(oldProps.asDynamic()[key].equals(newProps.asDynamic()[key]))) {
+                    console.log("not equals ", oldProps, newProps)
+                    return@memo false
+                }
+            }
+            console.log("empty equals", oldProps.className)
+            return@memo true
+        }
     }
     fc.asDynamic().displayName = "styled${type.capitalize()}"
     return fc
@@ -264,7 +284,7 @@ object Styled {
     private val cache = mutableMapOf<dynamic, dynamic>()
 
     private fun wrap(type: dynamic) =
-        cache.getOrPut<dynamic, RClass<StyledProps>>(type) {
+        cache.getOrPut<dynamic, FunctionalComponent<StyledProps>>(type) {
             customStyled(type)
         }
 

@@ -5,8 +5,9 @@ typealias RuleSet = CSSBuilder.() -> Unit
 fun ruleSet(set: RuleSet) = set
 
 data class Rule(val selector: String, val passStaticClassesToParent: Boolean = false, val block: RuleSet)
-typealias CssRules = MutableList<String>
+typealias CssRules = ArrayList<String>
 
+// TODO make hash function, which is not affected by rules position
 interface RuleContainer {
     fun StringBuilder.buildRules(indent: String) {
         val resolvedRules = LinkedHashMap<String, CSSBuilder>()
@@ -73,7 +74,7 @@ class CSSBuilder(
     val parent: RuleContainer? = null
 ) : StyledElement(), RuleContainer {
     var classes = mutableListOf<String>()
-    var cssClasses = mutableListOf<CssClass>()
+    var cssClasses = ArrayList<CssClass>()
 
     var styleName = mutableListOf<String>()
 
