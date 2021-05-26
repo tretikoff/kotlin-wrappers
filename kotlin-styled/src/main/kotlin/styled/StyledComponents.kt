@@ -3,11 +3,9 @@ package styled
 import kotlinext.js.clone
 import kotlinext.js.jsObject
 import kotlinx.browser.window
-import kotlinx.css.CSSBuilder
-import kotlinx.css.CssClass
-import kotlinx.css.CssRules
-import kotlinx.css.RuleSet
+import kotlinx.css.*
 import kotlinx.html.*
+import kotlinx.html.js.onClickFunction
 import org.w3c.dom.Element
 import react.*
 import react.dom.*
@@ -185,6 +183,39 @@ private object GlobalStyles {
     }
 }
 
+external var blob: dynamic
+fun RBuilder.statisticsButton() = child(StatisticsButton::class) {}
+
+class StatisticsButton(props: RProps) : RComponent<RProps, RState>(props) {
+    fun saveFile() {
+        js(
+            "var binaryData = [];" +
+                    "binaryData.push(blob);" +
+                    "var blobUrl = URL.createObjectURL(new Blob(binaryData, {type: \"application/text\"}));" +
+                    "var  link = document.createElement('a');" +
+                    "  link.href = blobUrl;" +
+                    "  link.download = 'statistics.txt';" +
+                    "  document.body.appendChild(link);" +
+                    "  link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));" +
+                    "  document.body.removeChild(link);"
+        )
+    }
+
+    override fun RBuilder.render() {
+        button {
+            +"Download statistics"
+            attrs {
+                onClickFunction = {
+                    blob = Statistics.getPerformanceString()
+                    saveFile()
+                    blob = Statistics.getRulesString()
+                    saveFile()
+                }
+            }
+        }
+    }
+}
+
 /**
  * @deprecated Use [createGlobalStyleComponent] instead
  */
@@ -226,25 +257,35 @@ external interface StyledProps : WithClassName {
     var css_rules: CssRules?
     var css_classes: List<CssClass>?
 }
+external val performance: dynamic
 
 fun customStyled(type: String): RClass<StyledProps> {
     val fc = forwardRef<StyledProps> { props, rRef ->
+        val id = type + hashCode()
+        performance.mark(id)
         val rules = props.css_rules
         val newProps = clone(props)
         val cssClasses = CssToClassMap()
-        if (rules != null) {
-            val it = rules.iterator()
-            while (it.hasNext()) {
-                val cssKey = it.next()
-                var className = styledClasses[cssKey]
-                if (className == null) {
-                    className = generateClassName("ksc-")
-                    cssClasses[cssKey] = className
-                    styledClasses[cssKey] = className
-                } else {
-                    it.remove()
+        useEffect(arrayListOf()) {
+            performance.mark(id)
+            console.log(performance.toString())
+            Statistics.addMeasure(id, performance)
+        }
+        useStructMemo(arrayOf(rules)) {
+            if (rules != null) {
+                val it = rules.iterator()
+                while (it.hasNext()) {
+                    val cssKey = it.next()
+                    var className = styledClasses[cssKey]
+                    if (className == null) {
+                        className = generateClassName("ksc-")
+                        cssClasses[cssKey] = className
+                        styledClasses[cssKey] = className
+                    } else {
+                        it.remove()
+                    }
+                    newProps.className += " $className"
                 }
-                newProps.className += " $className"
             }
         }
 
@@ -256,7 +297,6 @@ fun customStyled(type: String): RClass<StyledProps> {
         newProps.ref = rRef
         child(createElement(type, newProps))
     }
-    fc.asDynamic().displayName = "styled${type.capitalize()}"
     return fc
 }
 
