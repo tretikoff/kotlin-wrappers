@@ -1,15 +1,12 @@
 package styled
 
-import kotlinext.js.asJsObject
 import kotlinext.js.clone
 import kotlinext.js.getOwnPropertyNames
 import kotlinext.js.jsObject
 import kotlinx.browser.window
-import kotlinx.css.CSSBuilder
-import kotlinx.css.CssClass
-import kotlinx.css.CssRules
-import kotlinx.css.RuleSet
+import kotlinx.css.*
 import kotlinx.html.*
+import kotlinx.html.js.onClickFunction
 import org.w3c.dom.Element
 import react.*
 import react.dom.*
@@ -188,6 +185,39 @@ private object GlobalStyles {
     }
 }
 
+external var blob: dynamic
+fun RBuilder.statisticsButton() = child(StatisticsButton::class) {}
+
+class StatisticsButton(props: RProps) : RComponent<RProps, RState>(props) {
+    fun saveFile() {
+        js(
+            "var binaryData = [];" +
+                    "binaryData.push(blob);" +
+                    "var blobUrl = URL.createObjectURL(new Blob(binaryData, {type: \"application/text\"}));" +
+                    "var  link = document.createElement('a');" +
+                    "  link.href = blobUrl;" +
+                    "  link.download = 'statistics.txt';" +
+                    "  document.body.appendChild(link);" +
+                    "  link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));" +
+                    "  document.body.removeChild(link);"
+        )
+    }
+
+    override fun RBuilder.render() {
+        button {
+            +"Download statistics"
+            attrs {
+                onClickFunction = {
+                    blob = Statistics.getPerformanceString()
+                    saveFile()
+                    blob = Statistics.getRulesString()
+                    saveFile()
+                }
+            }
+        }
+    }
+}
+
 /**
  * @deprecated Use [createGlobalStyleComponent] instead
  */
@@ -230,11 +260,25 @@ external interface StyledProps : WithClassName {
     var css_classes: ArrayList<CssClass>?
 }
 
-fun customStyled(type: String): FunctionalComponent<StyledProps> {
+typealias StyledFunc = FunctionalComponent<StyledProps>
+
+external val performance: dynamic
+
+fun customStyled(type: String): StyledFunc {
     var fc = forwardRef<StyledProps> { props, rRef ->
+        val id = type + hashCode()
+        performance.mark(id)
+        Statistics.addMeasure(id, performance)
         val rules = props.css_rules
         val newProps = clone(props)
         val cssClasses = CssToClassMap()
+        useEffect(arrayListOf()) {
+            console.log(type + hashCode())
+//            val mark = js("performance.mark")
+            performance.mark(id)
+            console.log(performance.toString())
+            Statistics.addMeasure(id, performance)
+        }
         useStructMemo(arrayOf(rules)) {
             if (rules != null) {
                 val it = rules.iterator()
@@ -260,31 +304,35 @@ fun customStyled(type: String): FunctionalComponent<StyledProps> {
         newProps.css_rules = null
         newProps.ref = rRef
         child(createElement(type, newProps))
-    }.unsafeCast<FunctionalComponent<StyledProps>>()
-    fc = memo(fc)
+    }.unsafeCast<StyledFunc>()
+    fc = memoized(fc)
+    fc.asDynamic().displayName = "styled${type.capitalize()}"
+    return fc
+}
+
+fun memoized(fc: StyledFunc): StyledFunc {
+    return memo(fc)
     { oldProps: StyledProps, newProps: StyledProps ->
         if (Children.toArray(oldProps.children).isNotEmpty() || Children.toArray(newProps.children).isNotEmpty()) {
             false
         } else {
             for (key in oldProps.getOwnPropertyNames()) {
                 if (!(oldProps.asDynamic()[key].equals(newProps.asDynamic()[key]))) {
-                    console.log("not equals ", oldProps, newProps)
+//                    console.log("not equals ", oldProps, newProps)
                     return@memo false
                 }
             }
-            console.log("empty equals", oldProps.className)
+//            console.log("empty equals", oldProps.className)
             return@memo true
         }
     }
-    fc.asDynamic().displayName = "styled${type.capitalize()}"
-    return fc
 }
 
 object Styled {
     private val cache = mutableMapOf<dynamic, dynamic>()
 
     private fun wrap(type: dynamic) =
-        cache.getOrPut<dynamic, FunctionalComponent<StyledProps>>(type) {
+        cache.getOrPut<dynamic, StyledFunc>(type) {
             customStyled(type)
         }
 

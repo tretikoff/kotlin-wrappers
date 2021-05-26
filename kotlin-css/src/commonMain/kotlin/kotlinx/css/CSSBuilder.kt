@@ -79,10 +79,10 @@ class CSSBuilder(
     var styleName = mutableListOf<String>()
 
     override fun toString() = buildString {
-        declarations.forEach {
-            append("${it.key.hyphenize()}: ${it.value};\n")
+        declarations.forEach { outer ->
+            append("${outer.key.hyphenize()}: ${outer.value};\n")
         }
-
+        Statistics.add(declarations)
         buildRules(indent)
     }
 
