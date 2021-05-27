@@ -1,39 +1,30 @@
-[![Bintray](https://img.shields.io/bintray/v/kotlin/kotlin-js-wrappers/kotlin-react)](https://bintray.com/kotlin/kotlin-js-wrappers/kotlin-react)
+[![Maven Central](https://img.shields.io/maven-central/v/org.jetbrains.kotlin-wrappers/kotlin-react)](https://mvnrepository.com/artifact/org.jetbrains.kotlin-wrappers/kotlin-react)
 
 ## kotlin-react
 
 Kotlin wrapper for React library. Major version number of this wrapper matches that of React itself.
 
-### Setup
+### Maven
 
-#### Using Gradle
+```xml
+<project>
+    <dependency>
+        <groupId>org.jetbrains.kotlin-wrappers</groupId>
+        <artifactId>kotlin-react</artifactId>
+        <version>VERSION</version>
+    </dependency>
+</project>
+```
 
-As for all wrappers, make sure that you have the Bintray repository added to your build file:
+### Gradle
 
 ```kotlin
 repositories {
-    // . . .
-    jcenter() // or maven("https://kotlin.bintray.com/kotlin-js-wrappers/")
-    // . . .
+    mavenCentral()
 }
+
+implementation("org.jetbrains.kotlin-wrappers:kotlin-react:VERSION")
 ```
-
-To start using `kotlin-react` in your Kotlin/JS project, add the following four dependencies to the `dependencies` block for your JavaScript target inside your `build.gradle.kts` or `build.gradle` file:
-
-```kotlin
-implementation("org.jetbrains:kotlin-react:16.13.1-pre.105-kotlin-1.3.72")
-implementation("org.jetbrains:kotlin-react-dom:16.13.1-pre.105-kotlin-1.3.72")
-implementation(npm("react", "16.13.1"))
-implementation(npm("react-dom", "16.13.1"))
-```
-
-React follows [semantic versioning (semver)](https://semver.org/) principles, meaning you should be able to specify other API-compatible versions of the `npm` dependencies without issue.
-
-#### Other installation methods
-
-For Maven, please see the [Bintray page](https://bintray.com/kotlin/kotlin-js-wrappers/kotlin-react).
-
-For NPM, first run `npm i @jetbrains/kotlin-react`, then run `npm run gen-idea-libs`.
 
 ### Getting started
 
@@ -59,7 +50,7 @@ As you might know, the simplest way to define a React component in JavaScript is
 import React from 'react';
 
 export function Welcome(props) {
-  return <h1>Hello, {props.name}</h1>;
+    return <h1>Hello, {props.name}</h1>;
 }
 ```
 
@@ -114,7 +105,8 @@ fun RBuilder.welcome(handler: WelcomeProps.() -> Unit) = child(welcome) {
 
 #### Creating a React class component with Kotlin
 
-Here's an example of a component defined using a class with a `name` property of type `String`:
+Here's an example of a component defined using a class with a `name` property of type `String` and 
+a matching component state to hold the `name` property:
 
 ```kotlin
 import react.*
@@ -124,10 +116,20 @@ external interface WelcomeProps : RProps {
     var name: String
 }
 
-class Welcome: RComponent<WelcomeProps, RState>() {
-     override fun RBuilder.render() {
+external interface WelcomeState : RState {
+    var name: String
+}
+
+@JsExport
+class Welcome(props: WelcomeProps) : RComponent<WelcomeProps, WelcomeState>(props) {
+
+    override fun WelcomeState.init(props: WelcomeProps) {
+        name = props.name
+    }
+
+    override fun RBuilder.render() {
         div {
-            +"Hello, ${props.name}"
+            +"Hello, ${state.name}"
         }
     }
 }
@@ -160,6 +162,7 @@ fun RBuilder.welcome(handler: WelcomeProps.() -> Unit) = child(Welcome::class) {
     }
 }
 ```
+
 #### Using `RBuilder` extensions to structure complex components
 
 If a single component contains a lot of code, you can use `RBuilder` extension functions to group and structure code that belongs together. 
@@ -275,7 +278,7 @@ There is currently no easy way to declare static members from Kotlin/JS (see [KT
 so please do the following instead:
 
 ```kotlin
-class MyComponent: RComponent<MyComponentProps, MyComponentState>() {
+class MyComponent : RComponent<MyComponentProps, MyComponentState>() {
     companion object : RStatics<MyComponentProps, MyComponentState, MyComponent, Nothing>(MyComponent::class) {
         init {
             getDerivedStateFromProps = { props, state ->

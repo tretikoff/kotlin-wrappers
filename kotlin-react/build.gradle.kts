@@ -6,7 +6,13 @@ plugins {
 dependencies {
     api(project(":kotlin-extensions"))
 
-    api(kotlinxCoroutines("core"))
-
     api(npmv("react"))
+}
+
+signing {
+    setRequired({
+        gradle.taskGraph.hasTask("publish")
+    })
+
+    sign(publishing.publications)
 }

@@ -209,8 +209,9 @@ class CSSBuilder(
 
     fun supports(@Suppress("UNUSED_PARAMETER") query: String, block: RuleSet) = "@supports $query"(block)
 
-    fun fontFace(block: RuleSet) =
-        rule("@font-face", passStaticClassesToParent = false, repeatable = true, block = block)
+    fun container(@Suppress("UNUSED_PARAMETER") query: String, block: RuleSet) = "@container $query"(block)
+
+    fun fontFace(block: RuleSet) = rule("@font-face", passStaticClassesToParent = false, repeatable = true, block = block)
 
     fun retina(block: RuleSet) {
         media("(-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi)") {

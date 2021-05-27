@@ -1,6 +1,6 @@
 [![JetBrains team project](https://jb.gg/badges/team.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
 [![CI](https://github.com/JetBrains/kotlin-wrappers/workflows/CI/badge.svg)](https://github.com/JetBrains/kotlin-wrappers/actions)
-[![Kotlin](https://img.shields.io/badge/kotlin-1.4.30-blue.svg?logo=kotlin)](http://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/kotlin-1.5.10-blue.svg?logo=kotlin)](http://kotlinlang.org)
 [![Slack channel](https://img.shields.io/badge/chat-slack-green.svg?logo=slack)](https://kotlinlang.slack.com/messages/react/)
 
 # Kotlin Wrappers
@@ -8,21 +8,24 @@
 This repository hosts a number of [Kotlin](https://kotlinlang.org) wrappers for popular JavaScript libraries, such as
 [React](https://reactjs.org/), [Mocha](https://mochajs.org/), and [styled-components](https://www.styled-components.com/).
 
-To learn more please refer to the READMEs of individual modules:
-* [kotlin-css](kotlin-css/README.md), 
-* [kotlin-extensions](kotlin-extensions/README.md), 
-* [kotlin-mocha](kotlin-mocha/README.md), 
-* [kotlin-react](kotlin-react/README.md), 
-* [kotlin-react-dom](kotlin-react-dom/README.md),
-* [kotlin-react-redux](kotlin-react-redux/README.md),
-* [kotlin-react-router-dom](kotlin-react-router-dom/README.md),
-* [kotlin-react-table](kotlin-react-table/README.md),
-* [kotlin-redux](kotlin-redux/README.md),
-* [kotlin-styled](kotlin-styled/README.md).
+To learn more please refer to the READMEs of individual modules.
 
-All wrappers are available on npm: `npm install @jetbrains/<wrapper name>`
+| README | Version |
+| :--- | :--- |
+| [kotlin-css](kotlin-css/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/org.jetbrains.kotlin-wrappers/kotlin-css)](https://mvnrepository.com/artifact/org.jetbrains.kotlin-wrappers/kotlin-css) | 
+| [kotlin-extensions](kotlin-extensions/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/org.jetbrains.kotlin-wrappers/kotlin-extensions)](https://mvnrepository.com/artifact/org.jetbrains.kotlin-wrappers/kotlin-extensions) | 
+| [kotlin-mocha](kotlin-mocha/README.md) | Outdated, maintainer wanted! | 
+| [kotlin-react](kotlin-react/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/org.jetbrains.kotlin-wrappers/kotlin-react)](https://mvnrepository.com/artifact/org.jetbrains.kotlin-wrappers/kotlin-react) | 
+| [kotlin-react-dom](kotlin-react-dom/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/org.jetbrains.kotlin-wrappers/kotlin-react-dom)](https://mvnrepository.com/artifact/org.jetbrains.kotlin-wrappers/kotlin-react-dom) |
+| [kotlin-react-redux](kotlin-react-redux/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/org.jetbrains.kotlin-wrappers/kotlin-react-redux)](https://mvnrepository.com/artifact/org.jetbrains.kotlin-wrappers/kotlin-react-redux) |
+| [kotlin-react-router-dom](kotlin-react-router-dom/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/org.jetbrains.kotlin-wrappers/kotlin-react-router-dom)](https://mvnrepository.com/artifact/org.jetbrains.kotlin-wrappers/kotlin-react-router-dom) |
+| [kotlin-react-table](kotlin-react-table/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/org.jetbrains.kotlin-wrappers/kotlin-react-table)](https://mvnrepository.com/artifact/org.jetbrains.kotlin-wrappers/kotlin-react-table) |
+| [kotlin-redux](kotlin-redux/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/org.jetbrains.kotlin-wrappers/kotlin-redux)](https://mvnrepository.com/artifact/org.jetbrains.kotlin-wrappers/kotlin-redux) |
+| [kotlin-styled](kotlin-styled/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/org.jetbrains.kotlin-wrappers/kotlin-styled)](https://mvnrepository.com/artifact/org.jetbrains.kotlin-wrappers/kotlin-styled) |
 
-Artifacts installable using Maven and Gradle are published to [Bintray](https://bintray.com/kotlin/kotlin-js-wrappers) and JCenter.
+Artifacts are published to Maven Central, see the corresponding README files for package coordinates.
+
+**Important:** versions up to `pre.156` were published under `org.jetbrains` group ID to [kotlin.jetbrains.space](https://kotlin.jetbrains.space), newer versions are being published to Maven Central and the new group ID is `org.jetbrains.kotlin-wrappers`. Upon changing the group ID the version number was bumped to `pre.200` to signal the breaking change. 
 
 **All packages require JDK 8 to be installed.**
 

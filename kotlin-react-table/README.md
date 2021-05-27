@@ -1,10 +1,32 @@
-[![Bintray](https://img.shields.io/bintray/v/kotlin/kotlin-js-wrappers/kotlin-react-table)](https://bintray.com/kotlin/kotlin-js-wrappers/kotlin-react-table)
+[![Maven Central](https://img.shields.io/maven-central/v/org.jetbrains.kotlin-wrappers/kotlin-react-table)](https://mvnrepository.com/artifact/org.jetbrains.kotlin-wrappers/kotlin-react-table)
 
 ## kotlin-react-table
 
 Kotlin wrappers for [React Table](https://github.com/tannerlinsley/react-table) library.
 
-# Supported hooks
+### Maven
+
+```xml
+<project>
+    <dependency>
+        <groupId>org.jetbrains.kotlin-wrappers</groupId>
+        <artifactId>kotlin-react-table</artifactId>
+        <version>VERSION</version>
+    </dependency>
+</project>
+```
+
+### Gradle
+
+```kotlin
+repositories {
+    mavenCentral()
+}
+
+implementation("org.jetbrains.kotlin-wrappers:kotlin-react-table:VERSION")
+```
+
+### Supported hooks
 * [`useTable`](https://react-table.tanstack.com/docs/api/useTable)
 * [`useGroupBy`](https://react-table.tanstack.com/docs/api/useGroupBy)
 * [`useExpanded`](https://react-table.tanstack.com/docs/api/useExpanded)

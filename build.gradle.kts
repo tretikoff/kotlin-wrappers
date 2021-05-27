@@ -10,7 +10,6 @@ plugins {
 subprojects {
     repositories {
         mavenCentral()
-        maven("https://kotlin.bintray.com/kotlinx")
     }
 
     plugins.withType<KotlinJsPluginWrapper> {
@@ -32,12 +31,12 @@ subprojects {
             }
         }
     }
+
     afterEvaluate {
         tasks.withType<KotlinCompile<*>>().configureEach {
             if (!name.endsWith("JsIr")) {
                 kotlinOptions.allWarningsAsErrors = true
             }
-
         }
     }
 }

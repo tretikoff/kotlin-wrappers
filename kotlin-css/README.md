@@ -1,21 +1,30 @@
-[![Bintray](https://img.shields.io/bintray/v/kotlin/kotlin-js-wrappers/kotlin-css)](https://bintray.com/kotlin/kotlin-js-wrappers/kotlin-css)
+[![Maven Central](https://img.shields.io/maven-central/v/org.jetbrains.kotlin-wrappers/kotlin-css)](https://mvnrepository.com/artifact/org.jetbrains.kotlin-wrappers/kotlin-css)
 
 ## kotlin-css
 
 Platform-agnostic CSS primitives.
 
-### Installation
+### Maven
 
-To use `kotlin-css` in the browser, install `kotlin-css` using npm or Yarn:
+```xml
+<project>
+    <dependency>
+        <groupId>org.jetbrains.kotlin-wrappers</groupId>
+        <artifactId>kotlin-css</artifactId>
+        <version>VERSION</version>
+    </dependency>
+</project>
+```
 
-1. `npm i @jetbrains/kotlin-css`
+### Gradle
 
-2. `npm run gen-idea-libs` 
+```kotlin
+repositories {
+    mavenCentral()
+}
 
-To use `kotlin-css` on the server, install `kotlin-css` and `kotlin-css-jvm` using Maven or Gradle.
-
-See the [Bintray page](https://bintray.com/kotlin/kotlin-js-wrappers/kotlin-css) for Maven and Gradle installation 
-instructions.
+implementation("org.jetbrains.kotlin-wrappers:kotlin-css:VERSION")
+```
 
 ### Getting Started
 

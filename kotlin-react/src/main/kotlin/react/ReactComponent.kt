@@ -1,7 +1,6 @@
 package react
 
 import kotlinext.js.*
-import kotlin.reflect.KClass
 
 // Props
 external interface RProps
@@ -41,6 +40,10 @@ val RErrorInfo.componentStack: Any
 // TODO: Should extend RComponentClassStatics, but has problems with generic params
 external interface RClass<in P : RProps> : RComponentClassStatics<RProps, RState, RContext<Any>?>
 
+external interface RClassModule<in P : RProps> {
+    val default: RClass<P>
+}
+
 external interface RComponentClassStatics<P : RProps, S : RState, C : RContext<Any>?> {
     var displayName: String?
 
@@ -74,8 +77,8 @@ external interface RContext<T> {
 // Refs (16.3+)
 external interface RRef
 
-external interface RReadableRef<T> : RRef {
-    val current: T
+external interface RReadableRef<out T : Any> : RRef {
+    val current: T?
 }
 
 fun <S : RState> Component<*, S>.setState(buildState: S.() -> Unit) =

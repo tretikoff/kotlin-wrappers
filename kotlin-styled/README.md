@@ -1,4 +1,4 @@
-[![Bintray](https://img.shields.io/bintray/v/kotlin/kotlin-js-wrappers/kotlin-styled)](https://bintray.com/kotlin/kotlin-js-wrappers/kotlin-styled)
+[![Maven Central](https://img.shields.io/maven-central/v/org.jetbrains.kotlin-wrappers/kotlin-styled)](https://mvnrepository.com/artifact/org.jetbrains.kotlin-wrappers/kotlin-styled)
 
 ## kotlin-styled
 
@@ -6,14 +6,27 @@ Kotlin wrappers for [styled-components](https://www.styled-components.com/) and 
 
 Major version number of this wrapper matches that of styled-components itself.
 
-### Installation
+### Maven
 
-1. `npm i @jetbrains/kotlin-css @jetbrains/kotlin-styled inline-style-prefixer styled-components`
+```xml
+<project>
+    <dependency>
+        <groupId>org.jetbrains.kotlin-wrappers</groupId>
+        <artifactId>kotlin-styled</artifactId>
+        <version>VERSION</version>
+    </dependency>
+</project>
+```
 
-2. `npm run gen-idea-libs`
+### Gradle
 
-See the [Bintray page](https://bintray.com/kotlin/kotlin-js-wrappers/kotlin-styled) for Maven and Gradle installation 
-instructions.
+```kotlin
+repositories {
+    mavenCentral()
+}
+
+implementation("org.jetbrains.kotlin-wrappers:kotlin-styled:VERSION")
+```
 
 ### Getting Started
 

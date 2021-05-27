@@ -48,6 +48,8 @@ open class StyleSheet(var name: String, val isStatic: Boolean = false) {
                 }
                 createStyleSheet(map)
             }
+//            injectGlobal(builder.toString())
+            holders.clear()
         }
     }
 }
