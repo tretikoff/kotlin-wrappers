@@ -22,7 +22,7 @@ internal fun <T> getMemoizedCallback(
     args: RDependenciesList,
     callback: () -> T
 ): () -> T {
-    val prevResultRef = useRef<MemoizedResult<T>?>(null)
+    val prevResultRef = useRef<MemoizedResult<T>>(null)
     return {
         val prevResult = prevResultRef.current
         var index = -1

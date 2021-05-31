@@ -1,10 +1,10 @@
 package styled
 
-import kotlinext.js.*
-import kotlinx.browser.*
+import kotlinext.js.clone
+import kotlinext.js.jsObject
+import kotlinx.browser.window
 import kotlinx.css.*
 import kotlinx.html.*
-import kotlinx.html.js.onClickFunction
 import org.w3c.dom.Element
 import react.*
 import react.dom.*
@@ -75,11 +75,13 @@ interface StyledDOMBuilder<out T : Tag> : RDOMBuilder<T>, StyledBuilder<DOMProps
     override fun create() = Styled.createElement(type, css, domProps, childList)
 
     companion object {
-        operator fun <T : Tag> invoke(factory: (TagConsumer<Unit>) -> T): StyledDOMBuilder<T> = StyledDOMBuilderImpl(factory)
+        operator fun <T : Tag> invoke(factory: (TagConsumer<Unit>) -> T): StyledDOMBuilder<T> =
+            StyledDOMBuilderImpl(factory)
     }
 }
 
-class StyledDOMBuilderImpl<out T : Tag>(factory: (TagConsumer<Unit>) -> T) : StyledDOMBuilder<T>, RDOMBuilderImpl<T>(factory) {
+class StyledDOMBuilderImpl<out T : Tag>(factory: (TagConsumer<Unit>) -> T) : StyledDOMBuilder<T>,
+    RDOMBuilderImpl<T>(factory) {
     override val css = CSSBuilder()
 }
 
@@ -200,37 +202,6 @@ private object GlobalStyles {
 }
 
 external var blob: dynamic
-fun RBuilder.statisticsButton() = child(StatisticsButton::class) {}
-
-class StatisticsButton(props: RProps) : RComponent<RProps, RState>(props) {
-    fun saveFile() {
-        js(
-            "var binaryData = [];" +
-                    "binaryData.push(blob);" +
-                    "var blobUrl = URL.createObjectURL(new Blob(binaryData, {type: \"application/text\"}));" +
-                    "var  link = document.createElement('a');" +
-                    "  link.href = blobUrl;" +
-                    "  link.download = 'statistics.txt';" +
-                    "  document.body.appendChild(link);" +
-                    "  link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));" +
-                    "  document.body.removeChild(link);"
-        )
-    }
-
-    override fun RBuilder.render() {
-        button {
-            +"Download statistics"
-            attrs {
-                onClickFunction = {
-                    blob = Statistics.getPerformanceString()
-                    saveFile()
-                    blob = Statistics.getRulesString()
-                    saveFile()
-                }
-            }
-        }
-    }
-}
 
 /**
  * @deprecated Use [createGlobalStyleComponent] instead
@@ -273,6 +244,7 @@ external interface StyledProps : WithClassName {
     var css_rules: CssRules?
     var css_classes: List<CssClass>?
 }
+
 external val performance: dynamic
 
 fun customStyled(type: String): RClass<StyledProps> {
@@ -285,7 +257,7 @@ fun customStyled(type: String): RClass<StyledProps> {
         useEffect(arrayListOf()) {
             performance.mark(id)
             console.log(performance.toString())
-            Statistics.addMeasure(id, performance)
+            PerfStatistics.addMeasure(id, performance)
         }
         useStructMemo(arrayOf(rules)) {
             if (rules != null) {
@@ -337,5 +309,29 @@ object Styled {
             styledProps.asDynamic()["data-style"] = css.styleName.joinToString(separator = " ")
         }
         return createElement(wrappedType, styledProps, *children.toTypedArray())
+    }
+
+    init {
+        @Suppress("UNUSED_PARAMETER")
+        fun saveFile(blob: dynamic, name: String) {
+            js(
+                "var binaryData = [];" +
+                        "binaryData.push(blob);" +
+                        "var blobUrl = URL.createObjectURL(new Blob(binaryData, {type: \"application/text\"}));" +
+                        "var  link = document.createElement('a');" +
+                        "  link.href = blobUrl;" +
+                        "  link.download = name;" +
+                        "  document.body.appendChild(link);" +
+                        "  link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));" +
+                        "  document.body.removeChild(link);"
+            )
+        }
+
+        window.asDynamic().getStyledStats = {
+            var blob = PerfStatistics.getPerformanceString()
+            saveFile(blob, "perfstat.txt")
+            blob = Statistics.getRulesString()
+            saveFile(blob, "stat.txt")
+        }
     }
 }
