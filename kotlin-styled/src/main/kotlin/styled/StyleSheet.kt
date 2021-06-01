@@ -1,6 +1,7 @@
 package styled
 
 import kotlinx.css.CSSBuilder
+import kotlinx.css.CssClass
 import kotlinx.css.RuleSet
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
@@ -34,17 +35,19 @@ open class StyleSheet(var name: String, val isStatic: Boolean = false) {
                     cssHolder.properties.map { it to cssHolder }
                 }
 
-            val builder = CSSBuilder(allowClasses = false).apply {
-                keys.forEach {
-                    ".${getClassName(it.first)}" {
-                        for (r in it.second.ruleSets) {
-                            r()
-                        }
+            keys.forEach {
+                val builder = CSSBuilder(allowClasses = false).apply {
+                    for (r in it.second.ruleSets) {
+                        r()
                     }
                 }
+                val map = CssToClassMap()
+                val className = getClassName(it.first)
+                for (rule in builder.buildCssRules()) {
+                    map[rule] = className
+                }
+                createStyleSheet(map)
             }
-
-            injectGlobal(builder.toString())
         }
     }
 }
@@ -60,8 +63,7 @@ class CssHolder(private val sheet: StyleSheet, internal vararg val ruleSets: Rul
         return ReadOnlyProperty { _, property ->
             {
                 if (sheet.isStatic) {
-                    +(sheet.getClassName(property))
-                    sheet.inject()
+                    +CssClassImpl(sheet, property)
                 }
 
                 if (!sheet.isStatic || !allowClasses) {
@@ -70,6 +72,14 @@ class CssHolder(private val sheet: StyleSheet, internal vararg val ruleSets: Rul
                 }
             }
         }
+    }
+}
+
+data class CssClassImpl(val sheet: StyleSheet, val property: KProperty<*>) : CssClass() {
+    override val className: String
+        get() = sheet.getClassName(property)
+    override fun inject() {
+        sheet.inject()
     }
 }
 
