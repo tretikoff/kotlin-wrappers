@@ -1,7 +1,7 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinCompile
 import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
 import org.jetbrains.kotlin.gradle.dsl.KotlinJsProjectExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinJsPluginWrapper
-import org.jetbrains.kotlin.gradle.dsl.KotlinCompile
 
 plugins {
     kotlin("js") apply false
@@ -15,6 +15,7 @@ subprojects {
     plugins.withType<KotlinJsPluginWrapper> {
         extensions.configure<KotlinJsProjectExtension> {
             js {
+                moduleName = project.name
                 browser()
             }
         }
@@ -42,5 +43,5 @@ subprojects {
 }
 
 tasks.wrapper {
-    distributionType = Wrapper.DistributionType.ALL
+    gradleVersion = "6.9"
 }

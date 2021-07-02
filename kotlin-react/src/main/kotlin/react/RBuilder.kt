@@ -3,6 +3,8 @@ package react
 import kotlinext.js.*
 import kotlin.reflect.*
 
+typealias RRender = RBuilder.() -> Unit
+
 @DslMarker
 annotation class ReactDsl
 
@@ -195,7 +197,7 @@ fun <T : RBuilder> buildElements(builder: T, handler: T.() -> Unit): dynamic {
     }
 }
 
-fun buildElements(handler: RBuilder.() -> Unit): dynamic = buildElements(RBuilder(), handler)
+fun buildElements(handler: RRender): dynamic = buildElements(RBuilder(), handler)
 
 open class RBuilderSingle : RBuilderImpl()
 
@@ -204,7 +206,7 @@ inline fun <T : RBuilder> buildElement(rBuilder: T, handler: T.() -> Unit): Reac
         .childList.first()
         .unsafeCast<ReactElement>()
 
-inline fun buildElement(handler: RBuilder.() -> Unit): ReactElement =
+inline fun buildElement(handler: RRender): ReactElement =
     buildElement(RBuilder(), handler)
 
 interface RElementBuilder<out P : RProps> : RBuilder {
@@ -246,6 +248,8 @@ fun <P : RProps> forwardRef(handler: RBuilder.(P, RRef) -> Unit): RClass<P> =
     }
 
 typealias FunctionalComponent<P> = (props: P) -> dynamic
+
+typealias FC<P> = FunctionalComponent<P>
 
 /**
  * Get functional component from [func]

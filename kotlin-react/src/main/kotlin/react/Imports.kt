@@ -23,7 +23,7 @@ external object Children {
 abstract external class Component<P : RProps, S : RState>(
     props: P = definedExternally
 ) {
-    open val props: P
+    val props: P
     var state: S
 
     fun setState(partialState: S, callback: () -> Unit = definedExternally)
@@ -101,46 +101,69 @@ external interface ProfilerProps : RProps {
         baseDuration: Number,
         startTime: Number,
         commitTime: Number,
-        interactions: dynamic
+        interactions: dynamic,
     ) -> Unit
 }
 
 external val Profiler: RClass<ProfilerProps>
 
 // State Hook (16.8+)
-@JsName("useState")
-external fun <T> rawUseState(initValue: T): RDependenciesArray
+external fun <T : Any> useState(): StateInstance<T?>
+
+external fun <T> useState(
+    initialValue: T,
+): StateInstance<T>
+
+external fun <T> useState(
+    initializer: () -> T,
+): StateInstance<T>
 
 // Reducer Hook (16.8+)
-@JsName("useReducer")
-external fun <S, A> rawUseReducer(
+external fun <S, A, I> useReducer(
+    reducer: RReducer<S, A>,
+    initializerArg: I,
+    initializer: (I) -> S,
+): ReducerInstance<S, A>
+
+external fun <S, A> useReducer(
     reducer: RReducer<S, A>,
     initialState: S,
-    initialAction: A = definedExternally
-): RDependenciesArray
+): ReducerInstance<S, A>
+
+external fun <S : Any, A> useReducer(
+    reducer: RReducer<S?, A>,
+): ReducerInstance<S?, A>
 
 // Effect Hook (16.8+)
 @JsName("useEffect")
 external fun rawUseEffect(
     effect: () -> dynamic,
-    dependencies: RDependenciesArray = definedExternally
+    dependencies: RDependenciesArray = definedExternally,
 )
 
 // Layout Effect Hook (16.8+)
 @JsName("useLayoutEffect")
 external fun rawUseLayoutEffect(
     effect: () -> dynamic,
-    dependencies: RDependenciesArray = definedExternally
+    dependencies: RDependenciesArray = definedExternally,
 )
 
 // Context Hook (16.8+)
 external fun <T> useContext(context: RContext<T>): T
 
 // Callback Hook (16.8+)
-external fun <T : Function<*>> useCallback(callback: T, dependencies: RDependenciesArray): T
+@JsName("useCallback")
+external fun <T : Function<*>> rawUseCallback(
+    callback: T,
+    dependencies: RDependenciesArray,
+): T
 
 // Memo Hook (16.8+)
-external fun <T> useMemo(callback: () -> T, dependencies: RDependenciesArray): T
+@JsName("useMemo")
+external fun <T> rawUseMemo(
+    callback: () -> T,
+    dependencies: RDependenciesArray,
+): T
 
 // Ref Hook (16.8+)
 external interface RMutableRef<T : Any> : RReadableRef<T> {
@@ -155,5 +178,12 @@ external fun useImperativeHandle(ref: RRef, createInstance: () -> dynamic, input
 // Debug Value Hook (16.8+)
 external fun <T : Any> useDebugValue(
     value: T,
-    format: (value: T) -> Any = definedExternally
+    format: (value: T) -> Any = definedExternally,
 )
+
+// Transitions (18.0+)
+external fun startTransition(scope: TransitionFunction)
+
+external fun useTransition(
+    config: SuspenseConfig = definedExternally,
+): TransitionInstance

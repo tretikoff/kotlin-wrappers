@@ -17,3 +17,14 @@ external fun unmountComponentAtNode(domContainerNode: Element?)
 external fun findDOMNode(component: dynamic): Element?
 
 external fun createPortal(element: dynamic, container: Element?): ReactElement
+
+// 18.0+
+external fun createRoot(container: Element?, options: ReactRootOptions? = definedExternally): ReactRoot
+
+external interface ReactRoot {
+    fun render(element: dynamic): ReactElement
+}
+
+external interface ReactRootOptions {
+    var hydrate: Boolean
+}

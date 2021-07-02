@@ -4,6 +4,7 @@ plugins {
 }
 
 val publishVersion = publishVersion()
+project.version = publishVersion
 
 val javadocJar = if (isKotlinMultiplatformProject) {
     tasks.register("emptyJavadocJar", Jar::class) {
@@ -25,10 +26,11 @@ configure<PublishingExtension> {
                     artifactId = "${project.name}$artifactName"
                     version = publishVersion
 
-                    if (name == "jvm")
+                    if (name == "jvm") {
                         artifact(javadocJar!!.get())
+                    }
 
-                    metadata()
+                    configurePom(project)
                 }
 
             isKotlinJsProject ->
@@ -41,7 +43,18 @@ configure<PublishingExtension> {
 
                     artifact(tasks.getByName<Zip>("jsLegacySourcesJar"))
 
-                    metadata()
+                    configurePom(project)
+                }
+
+            else ->
+                create<MavenPublication>("bom") {
+                    from(components["javaPlatform"])
+
+                    groupId = project.group.toString()
+                    artifactId = project.name
+                    version = publishVersion
+
+                    configurePom(project)
                 }
         }
     }
@@ -55,31 +68,10 @@ configure<PublishingExtension> {
     }
 }
 
-fun MavenPublication.metadata() {
-    pom {
-        name.set(project.name)
-        description.set(project.description)
-        url.set("https://github.com/JetBrains/kotlin-wrappers")
+signing {
+    setRequired({
+        gradle.taskGraph.hasTask("publish")
+    })
 
-        licenses {
-            license {
-                name.set("The Apache License, Version 2.0")
-                url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-            }
-        }
-
-        developers {
-            developer {
-                id.set("JetBrains")
-                name.set("Leonid Khachaturov")
-                email.set("Leonid.Khachaturov@jetbrains.com")
-            }
-        }
-
-        scm {
-            connection.set("scm:git:git://github.com/JetBrains/kotlin-wrappers.git")
-            developerConnection.set("scm:git:git@github.com:JetBrains/kotlin-wrappers.git")
-            url.set("https://github.com/JetBrains/kotlin-wrappers")
-        }
-    }
+    sign(publishing.publications)
 }
