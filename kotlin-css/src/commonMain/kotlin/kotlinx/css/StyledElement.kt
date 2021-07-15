@@ -5,8 +5,10 @@ package kotlinx.css
 import kotlinx.css.properties.*
 import kotlin.reflect.*
 
+typealias StylePropertyDeclarations = LinkedHashMap<String, Any>
+
 open class StyledElement {
-    val declarations = LinkedHashMap<String, Any>()
+    val declarations = StylePropertyDeclarations()
 
     fun put(key: String, value: String) {
         declarations[key] = value

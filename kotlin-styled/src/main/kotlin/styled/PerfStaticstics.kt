@@ -1,5 +1,7 @@
 package styled
 
+//import userTiming.*
+
 fun MemoryInfo.getString(): String {
     val sb = StringBuilder("MemoryInfo {\n")
     sb.append("jsHeapSizeLimit: $jsHeapSizeLimit, ")
@@ -83,9 +85,11 @@ external interface PerformanceTiming {
     val unloadEventStart: Int
 }
 
-class PerfStatistics {
+class PerfHelper {
     companion object {
         private val perfSB = StringBuilder()
+        public var enabled = true
+        private val statistics = mutableMapOf<String, Double>()
 
         fun addMeasure(mark: String, perf: Performance) {
             perfSB.append(mark + ": { ${perf.getString()} }\n\n")
@@ -94,5 +98,27 @@ class PerfStatistics {
         fun getPerformanceString(): String {
             return perfSB.toString()
         }
+
+        fun getStatisticsString(): String {
+            return statistics.entries.joinToString("\n") { (key, value) -> "$key: $value" }
+        }
+
+        fun <T> measure(event: String, action: () -> T): T {
+//            if (performance == null || !enabled) {
+                return action()
+//            }
+//            performance.mark("$event:start")
+//            val start = performance.now().toDouble()
+//            return try {
+//                action()
+//            } finally {
+//                val end = performance.now().toDouble()
+//                val diff = end - start
+//                statistics[event] = statistics[event]?.let { it + diff } ?: diff
+//                performance.mark("$event:end")
+//                performance.measure(event, "$event:start", "$event:end")
+//            }
+        }
     }
 }
+
